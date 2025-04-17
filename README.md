@@ -253,7 +253,7 @@ Either WDT or WWDT test should be performed for KIT_XMC72_EVK and KIT_XMC72_EVK_
 
 #### 5. Clock test
 
-The Clock test implements the independent time slot monitoring described in **Section H.2.18.10.4** of the **IEC 60730** standard. Its purpose is to verify the reliability of the IMO system clock by ensuring that it runs neither too fast nor too slow within the tolerance, which is achieved by comparing the counters with an independent clock source. The tolerance values are configurable.
+The Clock test implements the independent time slot monitoring described in **Section H.2.18.10.4** of the **IEC 60730** standard. Its purpose is to verify the reliability of the ILO system clock by ensuring that it runs neither too fast nor too slow within the tolerance, which is achieved by comparing the counters with an IHO clock source. The code example calibrates ILO using IMO before performing the clock frequency tolerance test.
 
 #### 6. Flash test (invariable memory)
 
@@ -354,6 +354,7 @@ Document title: *CE241086* – *Class-B safety test: Core Peripherals*
  Version | Description of change
  ------- | ---------------------
  1.0.0   | New code example
+ 1.0.1   | Clock test update
 
 <br>
 

@@ -111,6 +111,9 @@ else { \
     /* Waiting time, in milliseconds, for proper start-up of ILO */
 #define ILO_START_UP_TIME              (2U)
 
+/* 48 MHz IHO */
+#define IMO_FREQ 8000000UL
+
 #define PATTERN_BLOCK_SIZE (8u)
 
 

@@ -418,6 +418,15 @@ void Clock_Test_Init(void)
     cy_en_tcpwm_status_t tcpwm_res;
     cy_en_sysint_status_t sysint_res;
 
+    /* Start the ILO clock measurement using the IMO- counter 1 clock - ILO counter 2 clock - IMO counter 1 period - 128*/
+    Cy_SysClk_StartClkMeasurementCounters(CY_SYSCLK_MEAS_CLK_ILO, 0x7FUL,CY_SYSCLK_MEAS_CLK_IMO);
+    /* Wait for counter 1 to reach 0 */
+    while(!Cy_SysClk_ClkMeasurementCountersDone()){}
+    /* Measure clock 1 with the IMO clock cycles (counter 2) */
+    uint32_t measuredFreq = Cy_SysClk_ClkMeasurementCountersGetFreq(false, IMO_FREQ);
+    /* Attempt to trim the ILO by 1 iteration step */
+    Cy_SysClk_IloTrim(measuredFreq);
+
     /* Unlock WDT */
     Cy_WDT_Unlock();
 
