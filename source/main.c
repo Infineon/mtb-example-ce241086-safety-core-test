@@ -1,8 +1,9 @@
 /*******************************************************************************
  * File Name:   main.c
  *
- * Description: This is the source code for core peripheral self tests 
- *              for PSOC Control C3 MCU.
+ * Description: In this CE, the core peripherals test (15 Tests are covered) of 
+ * the Class-B Safety Test Library is demonstrated for PSOC™ Control C3 MCUs.
+ * 
  *
  * Related Document: See README.md
  *
@@ -54,7 +55,6 @@
 /*******************************************************************************
  * Macros
  *******************************************************************************/
-uint8_t *res_cause  = (uint8_t*)0x40260800;
 
 /*******************************************************************************
  * Global Variables
@@ -90,6 +90,8 @@ static mtb_hal_uart_t               DEBUG_UART_hal_obj;           /** Debug UART
 int main(void)
 {
     cy_rslt_t result;
+    /* SelfTest API return status */
+    uint8_t ret = ERROR_STATUS;
 
     /* Initialize the device and board peripherals */
     result = cybsp_init();
@@ -101,7 +103,9 @@ int main(void)
     }
 
     /* Debug UART init */
-    result = (cy_rslt_t)Cy_SCB_UART_Init(DEBUG_UART_HW, &DEBUG_UART_config, &DEBUG_UART_context);
+    result = (cy_rslt_t)Cy_SCB_UART_Init(DEBUG_UART_HW,
+                                        &DEBUG_UART_config,
+                                        &DEBUG_UART_context);
 
     /* UART init failed. Stop program execution */
     if (result != CY_RSLT_SUCCESS)
@@ -112,7 +116,10 @@ int main(void)
     Cy_SCB_UART_Enable(DEBUG_UART_HW);
 
     /* Setup the HAL UART */
-    result = mtb_hal_uart_setup(&DEBUG_UART_hal_obj, &DEBUG_UART_hal_config, &DEBUG_UART_context, NULL);
+    result = mtb_hal_uart_setup(&DEBUG_UART_hal_obj,
+                                &DEBUG_UART_hal_config,
+                                &DEBUG_UART_context,
+                                NULL);
 
     /* HAL UART init failed. Stop program execution */
     if (result != CY_RSLT_SUCCESS)
@@ -120,6 +127,7 @@ int main(void)
         CY_ASSERT(0);
     }
 
+    /* retarget_io init */
     result = cy_retarget_io_init(&DEBUG_UART_hal_obj);
 
     /* HAL retarget_io init failed. Stop program execution */
@@ -134,8 +142,8 @@ int main(void)
     printf("\x1b[2J\x1b[;H");
 
     printf("****************** "
-            "Class-B Safety Test for PSoC Control C3: Core Peripheral Resources "
-            "****************** \r\n\n");
+           "Class-B Safety Test for PSoC Control C3: Core Peripheral Resources "
+           "****************** \r\n\n");
 
     printf("------------------------------------------------------- \r\n");
     printf("| #   | IP under test                   | Test Status | \r\n");
@@ -143,17 +151,18 @@ int main(void)
 
     /* Start Up Test */
     Start_Up_Test();
+
     /* Program counter Test */
     ret = SelfTest_PC();
-    PRINT_TEST_RESULT(ip_index++,"Program Counter Test",ret);
+    PRINT_TEST_RESULT(ip_index++, "Program Counter Test", ret);
 
-    /* CPU Registers Test*/
+    /* CPU Registers Test */
     ret = SelfTest_CPU_Registers();
-    PRINT_TEST_RESULT(ip_index++,"CPU Register Test", ret);
+    PRINT_TEST_RESULT(ip_index++, "CPU Register Test", ret);
 
-    /* Program Flow Test*/
+    /* Program Flow Test */
     ret = SelfTest_PROGRAM_FLOW();
-    PRINT_TEST_RESULT(ip_index++,"Program Flow Test", ret);
+    PRINT_TEST_RESULT(ip_index++, "Program Flow Test", ret);
 
     /* Watch Dog Timer Test */
     Wdt_Test();
@@ -169,7 +178,7 @@ int main(void)
 
     /* IPC Test */
     ret = SelfTest_IPC();
-    PRINT_TEST_RESULT(ip_index++,"IPC Test", ret);
+    PRINT_TEST_RESULT(ip_index++, "IPC Test", ret);
 
     /* Clock Test */
     Clock_Test();
@@ -191,12 +200,13 @@ int main(void)
 
     printf("------------------------------------------------------- \r\n\n");
     printf("END of the Core CPU Test.\r\n\n");
-    printf("Total number of IPs covered in the Test      %d\r\n",--ip_index);
+    printf("Total number of IPs covered in the Test      %d\r\n", --ip_index);
 
     for (;;)
     {
-
+        /* Idle loop */
     }
+
 }
 
 /* [] END OF FILE */

@@ -54,35 +54,12 @@
 extern uint16_t test_counter;
 /*Index for IPs*/
 extern uint8_t ip_index;
-/* SelfTest API return status */
-extern uint8_t ret;
-
 /*******************************************************************************
  * Macros
  *******************************************************************************/
-#define MAX_INDEX_VAL (0xFFF0u)
-
-#define CUSTOM_DELAY_VAL (500u)
-
-#define MARCH         SRAM_MARCH_TEST_MODE
-#define GALPAT        SRAM_GALPAT_TEST_MODE
-#define TEST_MODE     MARCH
-
-#define DEVICE_SRAM_BASE     (0x34000000)
-#define DEVICE_STACK_SIZE    (0x1000)
-#define DEVICE_SRAM_SIZE     (0x00010000)
-#define DEVICE_STACK_BASE    (DEVICE_SRAM_BASE + DEVICE_SRAM_SIZE)
-#define BLOCK_SIZE                1024
-#define BUFFER_SIZE               4096
-
-#define ALT_STACK_BASE    (0x3400F7FC)  /* Alt stack Base is within stack limit */
-#define TEST_STACK_SIZE    (0x800) /* Half of the Total stack size */
-
-
-#define PATTERN_BLOCK_SIZE (8u)
-
+/* Error Message */
 /* Print Test Result*/
-#define PRINT_TEST_RESULT(index, test_name, status) \
+#define PRINT_TEST_RESULT(index, test_name, ret) \
         do { \
             if (OK_STATUS == ret) { \
                 /* Process success */ \
@@ -100,49 +77,9 @@ else if (PASS_STILL_TESTING_STATUS == ret) { \
 else { \
     /* Process error */ \
     printf("| %-4d| %-32s| %-12s|\t\t",index,test_name,"ERROR"); \
+    printf("\r\n"); \
 } \
 } while (0)
-
-#if COMPONENT_CAT1C
-    /* Enable WWDT self test for XMC devices*/
-#define WWDT_SELF_TEST_ENABLE (0u)
-#endif
-
-    /* Waiting time, in milliseconds, for proper start-up of ILO */
-#define ILO_START_UP_TIME              (2U)
-
-/* 48 MHz IHO */
-#define IMO_FREQ 8000000UL
-
-#define PATTERN_BLOCK_SIZE (8u)
-
-
-/***************************************
-* Initial Parameter Constants
-***************************************/
-
-/** Stack test pattern */
-#define STACK_TEST_PATTERN        0x55AAu
-
-/*The size of RAM/ STACK block to be tested. */
-#define BLOCK_SIZE                1024
-
-/*The size of buffer which is used to store/restore. */
-#define BUFFER_SIZE               4096
-
-#define DEVICE_SRAM_BASE     (0x34000000)
-#define DEVICE_STACK_SIZE    (0x1000)
-#define DEVICE_SRAM_SIZE     (0x00010000)
-#define DEVICE_STACK_BASE    (DEVICE_SRAM_BASE + DEVICE_SRAM_SIZE)
-#define BLOCK_SIZE                1024
-
-#define PATTERN_BLOCK_SIZE (8u)
-
-    /* Start of Stack address excluding the block size to store pattern */
-#define DEVICE_STACK_BASE           (DEVICE_SRAM_BASE + DEVICE_SRAM_SIZE)
-
-    /* End of Stack address excluding the block size to store pattern */
-#define DEVICE_STACK_END            (uint32_t)(DEVICE_STACK_BASE - DEVICE_STACK_SIZE + STACK_TEST_BLOCK_SIZE)
 
 /*******************************************************************************
 * Function Prototypes

@@ -40,26 +40,46 @@
  * so agrees to indemnify Cypress against all liability.
  *******************************************************************************/
 
-/*******************************************************************************
- * Include guard
- *******************************************************************************/
 #include <stdlib.h>
 #include <stdio.h>
-
 #include "self_test.h"
 
 /*******************************************************************************
+ * Macros
+ *******************************************************************************/
+#define MAX_INDEX_VAL        (0xFFF0u)
+#define CUSTOM_DELAY_VAL     (500u)
+
+#define MARCH                SRAM_MARCH_TEST_MODE
+#define GALPAT               SRAM_GALPAT_TEST_MODE
+#define TEST_MODE            MARCH
+
+#define DEVICE_SRAM_BASE     (0x34000000)
+#define DEVICE_SRAM_SIZE     (0x00010000)
+#define BLOCK_SIZE           (0x8000u)
+#define BUFFER_SIZE          (512u)
+
+#define DEVICE_STACK_BASE    (DEVICE_SRAM_BASE + DEVICE_SRAM_SIZE)
+#define DEVICE_STACK_SIZE    (0x1000)
+#define ALT_STACK_BASE       (0x3400F7FC)  /* Alt stack Base is within stack limit */
+#define TEST_STACK_SIZE      (0x800) /* Half of the Total stack size */
+#define PATTERN_BLOCK_SIZE   (8u)
+
+/* Waiting time, in milliseconds, for proper start-up of ILO */
+#define ILO_START_UP_TIME    (2U)
+
+/* 8 MHz IMO */
+#define IMO_FREQ 8000000UL
+/*******************************************************************************
  * Global Variables
  *******************************************************************************/
-/* SelfTest API return status */
-uint8_t ret = 0u;
 /*Index for IPs*/
 uint8_t ip_index = 1u;
 
 uint16_t test_counter = 0u;
 
-/* Array to set shifts for March RAM test. */
-uint8_t sram_restore_buff[BUFFER_SIZE] = {0u};
+/* Buffer used in the SRAM test. (Fix memory location, It can be fixed in the linker file as well.) */
+uint8_t * sram_restore_buff = (uint8_t *)(DEVICE_SRAM_BASE + DEVICE_SRAM_SIZE - DEVICE_STACK_SIZE - BUFFER_SIZE);
 
 #if defined (__ICCARM__)
 #if (FLASH_TEST_MODE == FLASH_TEST_FLETCHER64)
@@ -70,43 +90,13 @@ CY_SECTION(".flash_checksum") const uint64_t flash_StoredCheckSum = 0x75207b14f9
 #endif
 #else
 #if (FLASH_TEST_MODE == FLASH_TEST_FLETCHER64)
-CY_SECTION(".flash_checksum")  uint64_t flash_StoredCheckSum = 0x75207b14f910cb27;
+CY_SECTION(".flash_checksum")  uint64_t flash_StoredCheckSum = 0x6DB675C9EB90708E;
 #endif
 #if (FLASH_TEST_MODE == FLASH_TEST_CRC32)
-CY_SECTION(".flash_checksum") uint64_t flash_StoredCheckSum = 0x75207b14f910cb27;
+CY_SECTION(".flash_checksum") uint64_t flash_StoredCheckSum = 0x6DB675C9EB90708E;
 #endif
 #endif
 
-/*******************************************************************************
- * Macros
- *******************************************************************************/
-
-/***************************************
- * Initial Parameter Constants
- ***************************************/
-
-/** Stack test pattern */
-#define STACK_TEST_PATTERN        0x55AAu
-
-/*The size of RAM/ STACK block to be tested. */
-#define BLOCK_SIZE                1024
-
-/*The size of buffer which is used to store/restore. */
-#define BUFFER_SIZE               4096
-
-#define DEVICE_SRAM_BASE     (0x34000000)
-#define DEVICE_STACK_SIZE    (0x1000)
-#define DEVICE_SRAM_SIZE     (0x00010000)
-#define DEVICE_STACK_BASE    (DEVICE_SRAM_BASE + DEVICE_SRAM_SIZE)
-#define BLOCK_SIZE                1024
-
-#define PATTERN_BLOCK_SIZE (8u)
-
-/* Start of Stack address excluding the block size to store pattern */
-#define DEVICE_STACK_BASE           (DEVICE_SRAM_BASE + DEVICE_SRAM_SIZE)
-
-/* End of Stack address excluding the block size to store pattern */
-#define DEVICE_STACK_END            (uint32_t)(DEVICE_STACK_BASE - DEVICE_STACK_SIZE + STACK_TEST_BLOCK_SIZE)
 
 /*******************************************************************************
  * Function Prototypes
@@ -147,14 +137,9 @@ void IAR_Flash_Init()
  *****************************************************************************/
 void Stack_March_Test(void)
 {
-    if(ERROR_STATUS == ret)
-    {
-        printf("\r\n");
-    }
-
     __disable_irq();
 
-    ret = SelfTest_SRAM_Stack((uint8_t *)DEVICE_STACK_BASE,(uint32_t)TEST_STACK_SIZE,(uint8_t *)ALT_STACK_BASE);
+    const uint8_t ret = SelfTest_SRAM_Stack((uint8_t *)DEVICE_STACK_BASE,(uint32_t)TEST_STACK_SIZE,(uint8_t *)ALT_STACK_BASE);
     __enable_irq();
 
 
@@ -177,13 +162,9 @@ void Stack_March_Test(void)
 *****************************************************************************/
 void SRAM_March_Test(void)
 {
-    if(ERROR_STATUS == ret)
-    {
-        printf("\r\n");
-    }
     __disable_irq();
 
-    ret = SelfTest_SRAM(TEST_MODE,(uint8_t *)DEVICE_SRAM_BASE,BLOCK_SIZE,(uint8_t *)sram_restore_buff,BUFFER_SIZE);
+    const uint8_t ret = SelfTest_SRAM(TEST_MODE,(uint8_t *)DEVICE_SRAM_BASE,BLOCK_SIZE,(uint8_t *)sram_restore_buff,BUFFER_SIZE);
 
     __enable_irq();
 
@@ -211,16 +192,13 @@ void Stack_Memory_Test(void)
     /* Init Stack SelfTest */
     SelfTests_Init_Stack_Range((uint16_t*)DEVICE_STACK_BASE, DEVICE_STACK_SIZE, PATTERN_BLOCK_SIZE);
 
-    if(ERROR_STATUS == ret)
-    {
-        printf("\r\n");
-    }
     /*******************************/
     /* Run Stack Self Test...      */
     /*******************************/
     uint8_t ret = SelfTests_Stack_Check_Range((uint16_t*)DEVICE_STACK_BASE, DEVICE_STACK_SIZE);
     if ((ERROR_STACK_OVERFLOW & ret))
     {
+        ret = ERROR_STATUS; 
         /* Process error */
         PRINT_TEST_RESULT(ip_index,"Stack Overflow Test", ret);
     }
@@ -230,7 +208,6 @@ void Stack_Memory_Test(void)
         /* Process error */
         PRINT_TEST_RESULT(ip_index,"Stack Underflow Test", ret);
     }
-
     else
     {
         PRINT_TEST_RESULT(ip_index,"Stack Memory Test", ret);
@@ -253,11 +230,6 @@ void Stack_Memory_Test(void)
  *****************************************************************************/
 void Start_Up_Test(void)
 {
-    if(ERROR_STATUS == ret)
-    {
-        printf("\r\n");
-    }
-
 #if (STARTUP_CFG_REGS_MODE == CFG_REGS_TO_FLASH_MODE)
 
     /*******************************/
@@ -273,14 +245,10 @@ void Start_Up_Test(void)
     /**********************************/
     /* Run Start-Up regs Self Test... */
     /**********************************/
-    ret = SelfTests_StartUp_ConfigReg();
+    const uint8_t ret = SelfTests_StartUp_ConfigReg();
 
     /* Process error */
     PRINT_TEST_RESULT(ip_index++,"Start-Up Register Test",ret);
-    if(ERROR_STATUS == ret)
-    {
-        printf("\r\n");
-    }
 
 }
 
@@ -300,14 +268,8 @@ void Start_Up_Test(void)
  *****************************************************************************/
 void Wdt_Test(void)
 {
-    if(ERROR_STATUS == ret)
-    {
-        printf("\r\n");
-    }
-
-    ret = SelfTest_WDT();
+    const uint8_t ret = SelfTest_WDT(); 
     PRINT_TEST_RESULT(ip_index++,"Watchdog Test", ret);
-
 
 }
 
@@ -326,17 +288,10 @@ void Wdt_Test(void)
  *****************************************************************************/
 void FPU_Test(void)
 {
-    if(ERROR_STATUS == ret)
-    {
-        printf("\r\n");
-    }
-
-    ret = SCB_GetFPUType();
-
     /**********************************/
     /* Run FPU Registers Self Test... */
     /**********************************/
-    ret = SelfTest_FPU_Registers();
+    const uint8_t ret = SelfTest_FPU_Registers();
     PRINT_TEST_RESULT(ip_index++,"FPU Register Test", ret);
 
 }
@@ -356,11 +311,7 @@ void FPU_Test(void)
  *****************************************************************************/
 void IO_Test(void)
 {
-    if(ERROR_STATUS == ret)
-    {
-        printf("\r\n");
-    }
-    ret = SelfTest_IO();
+    uint8_t ret = SelfTest_IO();
 
     if (OK_STATUS != ret)
     {
@@ -383,19 +334,10 @@ void IO_Test(void)
  *****************************************************************************/
 void DMA_DW_Test(void)
 {
-    if(ERROR_STATUS == ret)
-    {
-        printf("\r\n");
-    }
     /**********************************/
     /* Run DMA DW Self Test... */
     /**********************************/
-    ret = SelfTest_DMA_DW(DMA_DW_HW, DMA_DW_CHANNEL, &DMA_DW_Descriptor_0, &DMA_DW_Descriptor_1,&DMA_DW_Descriptor_0_config,  &DMA_DW_Descriptor_1_config,&DMA_DW_channelConfig, TRIG_OUT_MUX_0_PDMA0_TR_IN0);
-
-
-
-
-
+    const uint8_t ret = SelfTest_DMA_DW(DMA_DW_HW, DMA_DW_CHANNEL, &DMA_DW_Descriptor_0, &DMA_DW_Descriptor_1,&DMA_DW_Descriptor_0_config,  &DMA_DW_Descriptor_1_config,&DMA_DW_channelConfig, TRIG_OUT_MUX_0_PDMA0_TR_IN0);
     PRINT_TEST_RESULT(ip_index++,"DMA DW Test", ret);
 
 }
@@ -497,10 +439,7 @@ void Clock_Test_Init(void)
 *****************************************************************************/
 void Clock_Test(void)
 {
-    if(ERROR_STATUS == ret)
-    {
-        printf("\r\n");
-    }
+    uint8_t ret = 0u;
 
     Clock_Test_Init();
 
@@ -541,19 +480,11 @@ void Clock_Test(void)
  *****************************************************************************/
 void Interrupt_Test(void)
 {
-    if(ERROR_STATUS == ret)
-    {
-        printf("\r\n");
-    }
     Interrupt_Test_Init();
 
-    ret = SelfTest_Interrupt(CYBSP_TIMER_HW, CYBSP_TIMER_NUM);
-
+    const uint8_t ret = SelfTest_Interrupt(CYBSP_TIMER_HW, CYBSP_TIMER_NUM);
     PRINT_TEST_RESULT(ip_index++,"Interrupt Test", ret);
-    if(ERROR_STATUS == ret)
-    {
-        printf("\r\n");
-    }
+
 }
 
 /******************************************************************************
@@ -617,12 +548,9 @@ void Interrupt_Test_Init(void)
 *****************************************************************************/
 void Flash_Test(void)
 {
+    uint8_t ret = 0u;
     /* Variable for output calculated Flash Checksum */
     uint8_t flash_CheckSum_temp;
-    if(ERROR_STATUS == ret)
-    {
-        printf("\r\n");
-    }
 #if defined (__ICCARM__)
     IAR_Flash_Init();
 #else
